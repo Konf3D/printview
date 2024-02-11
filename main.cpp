@@ -6,8 +6,8 @@
 
 // Function to retrieve page count for a printer given its IP address
 int getPageCount(const std::string& ipAddress) {
-    struct snmp_session session, *ss;
-    struct snmp_pdu *pdu, *response;
+    snmp_session session, *ss;
+    snmp_pdu *pdu, *response;
     oid anOID[] = {1, 3, 6, 1, 2, 1, 43, 10, 2, 1, 4, 1, 1}; // Example OID for page count
 
     snmp_sess_init(&session);
