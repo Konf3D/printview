@@ -1,13 +1,17 @@
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <vector>
-#include <xlnt/xlnt.hpp>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 #include <net-snmp/net-snmp-config.h>
 #include <net-snmp/net-snmp-includes.h>
 
 // Function to retrieve page count for a printer given its IP address
 int getPageCount(const std::string& ipAddress) {
-    snmp_session session, *ss;
-    snmp_pdu *pdu, *response;
+    struct snmp_session session, *ss;
+    struct snmp_pdu *pdu, *response;
     oid anOID[] = {1, 3, 6, 1, 2, 1, 43, 10, 2, 1, 4, 1, 1}; // Example OID for page count
 
     snmp_sess_init(&session);
@@ -38,31 +42,27 @@ int getPageCount(const std::string& ipAddress) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        std::cerr << "Usage: " << argv[0] << " <filename.xlsx>" << std::endl;
+    if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <input_file.txt> <output_file.txt>" << std::endl;
         return 1;
     }
 
     std::vector<std::string> ipAddresses;
     std::vector<int> pageCounts;
 
-    // Open Excel file
-    xlnt::workbook wb;
-    try {
-        wb.load(argv[1]);
-    } catch (const std::exception& e) {
-        std::cerr << "Error opening Excel file: " << e.what() << std::endl;
+    // Open input file
+    std::ifstream input(argv[1]);
+    if (!input.is_open()) {
+        std::cerr << "Error opening input file" << std::endl;
         return 1;
     }
 
-    // Read IP addresses from the first row
-    auto ws = wb.active_sheet();
-    for (auto cell : ws.rows().front()) {
-        if (cell.to_string().empty()) {
-            break;
-        }
-        ipAddresses.push_back(cell.to_string());
+    // Read IP addresses from input file
+    std::string ipAddress;
+    while (std::getline(input, ipAddress)) {
+        ipAddresses.push_back(ipAddress);
     }
+    input.close();
 
     // Retrieve page counts for each printer
     for (const auto& ipAddress : ipAddresses) {
@@ -71,13 +71,22 @@ int main(int argc, char *argv[]) {
         std::cout << "Page count for printer at " << ipAddress << ": " << pageCount << std::endl;
     }
 
-    // Write page counts to the last empty row
-    auto lastRow = ws.cell(ws.highest_column() + 1, 1);
-    for (size_t i = 0; i < pageCounts.size(); ++i) {
-        lastRow.offset(i, 0).value(pageCounts[i]);
+    // Write page counts to output file with current date in the filename
+    auto now = std::chrono::system_clock::now();
+    std::time_t time = std::chrono::system_clock::to_time_t(now);
+    std::tm tm = *std::localtime(&time);
+    std::stringstream filename;
+    filename << std::put_time(&tm, "%Y-%m-%d") << ".txt";
+    std::ofstream output(filename.str());
+    if (!output.is_open()) {
+        std::cerr << "Error opening output file" << std::endl;
+        return 1;
     }
 
-    wb.save(argv[1]);
+    for (const auto& pageCount : pageCounts) {
+        output << pageCount << std::endl;
+    }
+    output.close();
 
     return 0;
 }
