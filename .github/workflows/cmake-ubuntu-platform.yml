@@ -2,9 +2,9 @@ name: CMake on a single platform
 
 on:
   push:
-    branches: [ $Konf3D-patch-1]
+    branches: [ $default-branch ]
   pull_request:
-    branches: [ $Konf3D-patch-1]
+    branches: [ $default-branch ]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
